@@ -1,5 +1,8 @@
 image: alpine:latest
 
+stages:
+  - deploy
+
 pages:
   stage: deploy
   script:
@@ -9,3 +12,38 @@ pages:
     - public
   only:
   - master
+
+.issue-certificate:
+  image: node:10
+  stage: deploy
+  script:
+    - |-
+      echo "Check if env variables are set properly"
+      for var in LE_EMAIL LE_DOMAINS LE_GITLAB_REPOSITORY LE_GITLAB_TOKEN LE_CHALLENGE_PATH; do
+        if [ -z "${!var}" ]; then
+          echo "$var is blank; Please ensure it is set"
+          exit 1
+        fi
+      done
+    - node -e 'console.log(process.env.TZ,Date())'
+    - yarn global add @leipert/gitlab-letsencrypt@^4.0.0
+    - >-
+      gitlab-pages-le
+      --email ${LE_EMAIL}
+      --domain ${LE_DOMAINS}
+      --repository ${LE_GITLAB_REPOSITORY}
+      --token ${LE_GITLAB_TOKEN}
+      --path ${LE_CHALLENGE_PATH}
+      --production
+
+letsencrypt:
+  extends: .issue-certificate
+  stage: deploy
+  variables:
+    LE_DOMAINS: "schmilblick.org www.schmilblick.org"
+    LE_CHALLENGE_PATH: "/public/.well-known/acme-challenge"
+    LE_GITLAB_REPOSITORY: $CI_PROJECT_URL
+    # LE_EMAIL set as CI/CD Variable
+    # LE_GITLAB_TOKEN set as CI/CD Variable
+  only:
+    - schedules
