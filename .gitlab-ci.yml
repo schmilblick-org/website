@@ -2,6 +2,7 @@ image: alpine:latest
 
 stages:
   - deploy
+  - certificate
 
 pages:
   stage: deploy
@@ -15,7 +16,7 @@ pages:
 
 .issue-certificate:
   image: node:10
-  stage: deploy
+  stage: certificate
   script:
     - |-
       echo "Check if env variables are set properly"
@@ -38,7 +39,7 @@ pages:
 
 letsencrypt:
   extends: .issue-certificate
-  stage: deploy
+  stage: certificate
   variables:
     LE_DOMAINS: "schmilblick.org www.schmilblick.org"
     LE_CHALLENGE_PATH: "/public/.well-known/acme-challenge"
